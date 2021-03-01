@@ -20,6 +20,8 @@ End Type
 Public RawSequence() As Sequence
 Public RowNumber As Long
 Public SeqNumber As Long
+Public Code As Object
+Public NumberOfCode As Long
 '=========================================================================================
 ' ImportSequence
 Public Sub ImportSequence()
@@ -213,13 +215,14 @@ End Sub
 '===================================================================================================
 'Find motif
 Public Sub FindMotif()
+Call ImportSequence
 Dim OldActive
 Set OldActive = ActiveSheet
 Application.DisplayAlerts = False
 On Error Resume Next
 Worksheets("Motif").Delete
 Err.Clear
-Application.dosplayalerts = True
+Application.DisplayAlerts = True
 Worksheets.Add.Name = "Motif"
 Dim OutputSheet
 Set OutputSheet = Worksheets("Motif")
@@ -252,3 +255,134 @@ OldActive.Activate
 End Sub
 '=======================================================================================================
 ' DNA-Into-RNA
+Public Sub DnaToRna()
+Call ImportSequence
+Dim OldActive
+Set OldActive = ActiveSheet
+Application.DisplayAlerts = False
+On Error Resume Next
+Worksheets("RNA").Delete
+Worksheets.Add.Name = "RNA"
+Err.Clear
+Application.DisplayAlerts = True
+
+Dim OutputSheet
+Set OutputSheet = Worksheets("RNA")
+OutputSheet.Cells(1, 1) = "Name of Sequence"
+OutputSheet.Cells(1, 2) = "RNA"
+Dim temp As String, Match
+Dim i As Long, j As Long
+Dim RnaRegex As Object
+Set RnaRegex = CreateObject("vbscript.regexp")
+With RnaRegex
+    .Global = True
+    .Pattern = "T"
+    .ignorecase = True
+    End With
+For i = 1 To SeqNumber
+        RawSequence(i).RNA = RnaRegex.Replace(RawSequence(i).Content, "U")
+        OutputSheet.Cells(i + 1, 1) = RawSequence(i).Name
+        OutputSheet.Cells(i + 1, 2) = RawSequence(i).RNA
+        Next i
+OldActive.Activate
+End Sub
+'=========================================================================================================
+'RNA-into-protein
+Public Sub RnaToProtein()
+Call ImportSequence
+Call DnaToRna
+Dim OldActive
+Set OldActive = ActiveSheet
+On Error Resume Next
+Worksheets("Protein").Delete
+Worksheets.Add.Name = "Protein"
+Err.Clear
+Set Code = CreateObject("scripting.dictionary")
+    Code.Add "GCU", "A"
+    Code.Add "GCC", "A"
+    Code.Add "GCA", "A"
+    Code.Add "GCG", "A"
+    Code.Add "CGU", "R"
+    Code.Add "CGC", "R"
+    Code.Add "CGA", "R"
+    Code.Add "CGG", "R"
+    Code.Add "AGA", "R"
+    Code.Add "AGG", "R"
+    Code.Add "AAU", "N"
+    Code.Add "AAC", "N"
+    Code.Add "GAU", "D"
+    Code.Add "GAC", "D"
+    Code.Add "UGU", "C"
+    Code.Add "UGC", "C"
+    Code.Add "CAA", "Q"
+    Code.Add "CAG", "Q"
+    Code.Add "CAU", "H"
+    Code.Add "CAC", "H"
+    Code.Add "AUG", "M"
+    Code.Add "AUU", "I"
+    Code.Add "AUC", "I"
+    Code.Add "AUA", "I"
+    Code.Add "CUU", "L"
+    Code.Add "CUC", "L"
+    Code.Add "CUA", "L"
+    Code.Add "CUG", "L"
+    Code.Add "UUA", "L"
+    Code.Add "UUG", "L"
+    Code.Add "AAA", "K"
+    Code.Add "AAG", "K"
+    Code.Add "UUU", "F"
+    Code.Add "UUC", "F"
+    Code.Add "CCU", "P"
+    Code.Add "CCC", "P"
+    Code.Add "CCA", "P"
+    Code.Add "CCG", "P"
+    Code.Add "UCU", "S"
+    Code.Add "UCC", "S"
+    Code.Add "UCA", "S"
+    Code.Add "UCG", "S"
+    Code.Add "AGU", "S"
+    Code.Add "AGC", "S"
+    Code.Add "ACU", "T"
+    Code.Add "ACC", "T"
+    Code.Add "ACA", "T"
+    Code.Add "ACG", "T"
+    Code.Add "UGG", "T"
+    Code.Add "UAU", "Y"
+    Code.Add "UAC", "Y"
+    Code.Add "GUU", "V"
+    Code.Add "GUC", "V"
+    Code.Add "GUA", "V"
+    Code.Add "GUG", "V"
+    Code.Add "UAA", "STOP"
+    Code.Add "UGA", "STOP"
+    Code.Add "UAG", "STOP"
+    Code.Add "TGG", "W"
+    Code.Add "GAA", "E"
+    Code.Add "GAG", "E"
+    Code.Add "GGT", "G"
+    Code.Add "GGC", "G"
+    Code.Add "GGA", "G"
+    Code.Add "GGG", "G"
+NumberOfCode = Code.Count
+Dim temp As String
+Dim i As Long
+Dim j As Long
+Dim OutputSheet
+Set OutputSheet = Worksheets("Protein")
+OutputSheet.Cells(1, 1) = "Name of sequence"
+OutputSheet.Cells(1, 2) = "Protein sequence"
+For i = 1 To SeqNumber
+    For j = 1 To Len(RawSequence(i).RNA) Step 3
+    temp = Mid(RawSequence(i).RNA, j, 3)
+    If Code(temp) <> "STOP" Then
+    RawSequence(i).Protein = RawSequence(i).Protein & Code(temp)
+    End If
+    Next j
+    OutputSheet.Cells(i + 1, 1) = RawSequence(i).Name
+    OutputSheet.Cells(i + 1, 2) = RawSequence(i).Protein
+    Next i
+    OldActive.Activate
+End Sub
+'==================================================================================================
+'inferring mRNA from protein
+
